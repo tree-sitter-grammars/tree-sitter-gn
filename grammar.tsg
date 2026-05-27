@@ -1,0 +1,165 @@
+// GN grammar for tree-sitter (native DSL).
+// Translated from grammar.js.
+
+let PREC = {
+    LOGICAL_OR: 1,
+    LOGICAL_AND: 2,
+    EQUALITY: 3,
+    COMPARE: 4,
+    ADD: 4,
+    CALL: 5,
+    MEMBER: 6,
+    UNARY: 7,
+}
+
+macro binop_l(p: int_t, op: rule_t) rule_t {
+    prec_left(p, seq(
+        field(left, expression),
+        field(operator, op),
+        field(right, expression),
+    ))
+}
+
+macro comma_sep1(rule: rule_t) rule_t {
+    seq(rule, repeat(seq(",", rule)), optional(","))
+}
+
+macro comma_sep(rule: rule_t) rule_t {
+    optional(comma_sep1(rule))
+}
+
+grammar {
+    language: "gn",
+    externals: [_string_content],
+    extras: [regexp(r"\s"), comment],
+    supertypes: [statement, expression],
+    word: identifier,
+}
+
+rule source_file { repeat(statement) }
+
+rule statement {
+    choice(
+        import_statement,
+        if_statement,
+        foreach_statement,
+        assignment_statement,
+        expression,
+    )
+}
+
+rule import_statement { seq("import", "(", expression, ")") }
+
+rule if_statement {
+    prec_right(0, seq(
+        "if",
+        "(",
+        field(condition, expression),
+        ")",
+        field(consequence, block),
+        repeat(else_statement),
+    ))
+}
+
+rule else_statement {
+    seq("else", field(alternative, choice(if_statement, block)))
+}
+
+rule foreach_statement {
+    seq(
+        "foreach",
+        "(",
+        field(item, identifier),
+        ",",
+        field(list, expression),
+        ")",
+        block,
+    )
+}
+
+rule block { seq("{", repeat(statement), "}") }
+
+rule assignment_statement {
+    seq(
+        choice(identifier, array_access, scope_access),
+        choice("=", "+=", "-="),
+        expression,
+    )
+}
+
+rule expression { choice(unary_expression, binary_expression, primary_expression) }
+
+rule primary_expression {
+    choice(
+        identifier, integer, string, boolean, call_expression,
+        array_access, scope_access, block, parenthesized_expression, list,
+    )
+}
+
+rule unary_expression { prec_left(1, seq("!", primary_expression)) }
+
+rule binary_expression {
+    choice(
+        binop_l(PREC.ADD, choice("+", "-")),
+        binop_l(PREC.COMPARE, choice("<", "<=", ">", ">=")),
+        binop_l(PREC.EQUALITY, choice("==", "!=")),
+        binop_l(PREC.LOGICAL_AND, "&&"),
+        binop_l(PREC.LOGICAL_OR, "||"),
+    )
+}
+
+rule call_expression {
+    prec_left(PREC.CALL, seq(
+        field(function, identifier),
+        "(",
+        comma_sep(expression),
+        ")",
+        optional(block),
+    ))
+}
+
+rule array_access {
+    prec_left(PREC.MEMBER, seq(
+        field(array, expression),
+        "[",
+        field(index, expression),
+        "]",
+    ))
+}
+
+rule scope_access {
+    prec_left(PREC.MEMBER, seq(
+        field(scope, expression),
+        ".",
+        field(field, identifier),
+    ))
+}
+
+rule parenthesized_expression { seq("(", expression, ")") }
+
+rule list { seq("[", comma_sep(expression), "]") }
+
+rule string { seq("\"", optional(string_content), "\"") }
+
+rule string_content {
+    repeat1(choice(escape_sequence, expansion, _string_content))
+}
+
+rule escape_sequence { regexp(r#"\\["$\\]"#) }
+
+rule expansion {
+    choice(
+        seq("$", choice(identifier, hex)),
+        seq("${", choice(identifier, array_access, scope_access), "}"),
+    )
+}
+
+rule integer { regexp(r"-?\d+") }
+
+rule hex { regexp(r"0x[0-9a-fA-F]+") }
+
+rule boolean { choice("true", "false") }
+
+rule identifier { regexp(r"[a-zA-Z_][a-zA-Z0-9_]*") }
+
+rule comment { token(seq("#", regexp(r".*"))) }
