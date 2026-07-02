@@ -15,10 +15,10 @@ const PREC = {
   LOGICAL_AND: 2,
   EQUALITY: 3,
   COMPARE: 4,
-  ADD: 4,
-  CALL: 5,
-  MEMBER: 6,
-  UNARY: 7,
+  ADD: 5,
+  CALL: 6,
+  MEMBER: 7,
+  UNARY: 8,
 };
 
 module.exports = grammar({
