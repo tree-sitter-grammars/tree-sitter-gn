@@ -1,0 +1,76 @@
+================================================================================
+Arithmetic binds tighter than comparison
+================================================================================
+
+a = b < c + 1
+b = c + 1 < d
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (assignment_statement
+    (identifier)
+    (binary_expression
+      (primary_expression
+        (identifier))
+      (binary_expression
+        (primary_expression
+          (identifier))
+        (primary_expression
+          (integer)))))
+  (assignment_statement
+    (identifier)
+    (binary_expression
+      (binary_expression
+        (primary_expression
+          (identifier))
+        (primary_expression
+          (integer)))
+      (primary_expression
+        (identifier)))))
+
+================================================================================
+Comparison binds tighter than equality
+================================================================================
+
+a = b == c < d
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (assignment_statement
+    (identifier)
+    (binary_expression
+      (primary_expression
+        (identifier))
+      (binary_expression
+        (primary_expression
+          (identifier))
+        (primary_expression
+          (identifier))))))
+
+================================================================================
+Logical operator precedence
+================================================================================
+
+a = b < c && d > e || f
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (assignment_statement
+    (identifier)
+    (binary_expression
+      (binary_expression
+        (binary_expression
+          (primary_expression
+            (identifier))
+          (primary_expression
+            (identifier)))
+        (binary_expression
+          (primary_expression
+            (identifier))
+          (primary_expression
+            (identifier))))
+      (primary_expression
+        (identifier)))))
